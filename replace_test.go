@@ -316,3 +316,91 @@ func TestReplace(t *testing.T) {
 		})
 	}
 }
+
+func TestReplaceInMultipleSequences(t *testing.T) {
+	t.Parallel()
+	seq1 := nject.Sequence("seq1",
+		nject.Provide("A", func() string { return "A" }),
+		nject.Provide("B", func(s string) string { return s + "B" }),
+	)
+	seq2 := nject.Sequence("seq2",
+		nject.Provide("C", func(s string) string { return s + "C" }),
+		nject.Provide("D", func(s string) string { return s + "D" }),
+	)
+
+	cases := []struct {
+		name   string
+		extras []nject.Provider
+		want   string
+		err    error
+	}{
+		{
+			name: "no extras",
+			want: "ABCD",
+		},
+		{
+			name: "replace B",
+			extras: []nject.Provider{
+				nject.ReplaceNamed("B", func(s string) string { return s + "B2" }),
+			},
+			want: "AB2CD",
+		},
+		{
+			name: "insert B",
+			extras: []nject.Provider{
+				nject.InsertAfterNamed("B", func(s string) string { return s + "if" }),
+			},
+			want: "ABifCD",
+		},
+		{
+			name: "replace and insert after",
+			extras: []nject.Provider{
+				nject.ReplaceNamed("B", func(s string) string { return s + "B2" }),
+				nject.InsertAfterNamed("B", func(s string) string { return s + "if" }),
+			},
+			want: "AB2ifCD",
+		},
+		{
+			name: "replace and insert after",
+			extras: []nject.Provider{
+				nject.ReplaceNamed("B", nject.Provide("B", func(s string) string { return s + "B2" })),
+				nject.InsertAfterNamed("B", func(s string) string { return s + "BIF" }),
+			},
+			want: "ABCDB2BIFCD",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			extraAny := make([]any, len(tc.extras))
+			for i, extra := range tc.extras {
+				extraAny[i] = extra
+			}
+			extras := nject.Sequence("extras", extraAny...)
+			err := nject.Run(t.Name(), seq1, seq2, extras, func(s string) {
+				assert.Equal(t, tc.want, s)
+			})
+			if tc.err != nil {
+				assert.Equal(t, tc.err, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+/*
+--- FAIL: TestReplaceInMultipleSequences (0.00s)
+    --- FAIL: TestReplaceInMultipleSequences/replace_and_insert_after (0.00s)
+        /home/siqing/Projects/nject/replace_test.go:386:
+            	Error Trace:	/home/siqing/Projects/nject/replace_test.go:386
+            	Error:      	Received unexpected error:
+            	            	cannot insert after 'B', not in chain
+            	Test:       	TestReplaceInMultipleSequences/replace_and_insert_after
+    --- FAIL: TestReplaceInMultipleSequences/replace_and_insert_after#01 (0.00s)
+        /home/siqing/Projects/nject/replace_test.go:386:
+            	Error Trace:	/home/siqing/Projects/nject/replace_test.go:386
+            	Error:      	Received unexpected error:
+            	            	cannot replace 'B', duplicated in chain
+            	Test:       	TestReplaceInMultipleSequences/replace_and_insert_after#01
+*/
