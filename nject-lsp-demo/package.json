@@ -23,9 +23,12 @@
   ],
   "main": "./out/src/extension.js",
   "scripts": {
-    "compile": "tsc -p .",
+    "clean": "node -e \"require('node:fs').rmSync('out',{recursive:true,force:true})\"",
+    "build:client": "tsc -p .",
+    "build:server": "node scripts/build-server.mjs",
+    "compile": "npm run clean && npm run build:client && npm run build:server",
     "watch": "tsc -w -p .",
-    "test": "npm run compile && node --test out/server/src/*.test.js",
+    "test": "npm run compile && cd server && go test ./...",
     "package": "npm run compile && vsce package --out nject-lsp-demo.vsix"
   },
   "keywords": [
@@ -59,9 +62,7 @@
     }
   },
   "dependencies": {
-    "vscode-languageclient": "^10.1.0",
-    "vscode-languageserver": "^10.1.0",
-    "vscode-languageserver-textdocument": "^1.0.13"
+    "vscode-languageclient": "^10.1.0"
   },
   "devDependencies": {
     "@types/node": "^26.1.1",

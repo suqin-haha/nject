@@ -4,7 +4,6 @@ import {
   LanguageClient,
   LanguageClientOptions,
   ServerOptions,
-  TransportKind,
 } from "vscode-languageclient/node";
 
 interface ShowFunctionArguments {
@@ -76,16 +75,15 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     ),
   );
 
-  const serverModule = context.asAbsolutePath(
-    path.join("out", "server", "src", "server.js"),
+  const serverExecutable = context.asAbsolutePath(
+    path.join(
+      "bin",
+      process.platform === "win32" ? "nject-lsp.exe" : "nject-lsp",
+    ),
   );
   const serverOptions: ServerOptions = {
-    run: { module: serverModule, transport: TransportKind.ipc },
-    debug: {
-      module: serverModule,
-      transport: TransportKind.ipc,
-      options: { execArgv: ["--nolazy", "--inspect=6009"] },
-    },
+    command: serverExecutable,
+    args: [],
   };
   const clientOptions: LanguageClientOptions = {
     documentSelector: [{ scheme: "file", language: "go" }],
