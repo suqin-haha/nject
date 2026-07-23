@@ -13,6 +13,10 @@ interface ShowFunctionArguments {
   character: number;
 }
 
+interface ShowFunctionsArguments {
+  functions: ShowFunctionArguments[];
+}
+
 interface CodeActionResponse {
   command?: {
     command: string;
@@ -47,12 +51,12 @@ class FunctionProvider implements vscode.TreeDataProvider<FunctionItem> {
   private readonly changed = new vscode.EventEmitter<
     FunctionItem | undefined | null | void
   >();
-  private selected?: FunctionItem;
+  private selected: FunctionItem[] = [];
 
   readonly onDidChangeTreeData = this.changed.event;
 
-  select(args: ShowFunctionArguments): void {
-    this.selected = new FunctionItem(args);
+  select(args: ShowFunctionsArguments): void {
+    this.selected = args.functions.map((item) => new FunctionItem(item));
     this.changed.fire();
   }
 
@@ -61,7 +65,7 @@ class FunctionProvider implements vscode.TreeDataProvider<FunctionItem> {
   }
 
   getChildren(): FunctionItem[] {
-    return this.selected ? [this.selected] : [];
+    return this.selected;
   }
 }
 
@@ -73,7 +77,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.window.registerTreeDataProvider("njectLspDemo.functions", provider),
     vscode.commands.registerCommand(
       "njectLspDemo.showFunction",
-      async (args: ShowFunctionArguments) => {
+      async (args: ShowFunctionsArguments) => {
         provider.select(args);
         await vscode.commands.executeCommand(
           "workbench.view.extension.njectLspDemo",
@@ -105,11 +109,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
             (action) =>
               action.command?.command === "njectLspDemo.showFunction",
           )
-          ?.command?.arguments?.[0] as ShowFunctionArguments | undefined;
+          ?.command?.arguments?.[0] as ShowFunctionsArguments | undefined;
 
-        if (!args) {
+        if (!args?.functions.length) {
           void vscode.window.showInformationMessage(
-            "Nject: Place the cursor in a Go function or method signature.",
+            "Nject: Select a function parameter that is supplied by an nject.Run chain.",
           );
           return;
         }

@@ -1,11 +1,19 @@
 package demo
 
+import nject "github.com/muir/nject/v2"
+
+func ProvideName() string {
+	return "nject"
+}
+
 func HelloNject(name string) string {
 	return "Hello, " + name
 }
 
-func (g Greeter) Greet(name string) string {
-	return HelloNject(name)
+func RunProviders(providers ...any) {
+	nject.MustRun("LSP demo", providers...)
 }
 
-type Greeter struct{}
+func Start() {
+	RunProviders(ProvideName, HelloNject)
+}

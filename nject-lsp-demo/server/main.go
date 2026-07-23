@@ -46,6 +46,20 @@ func (s *documentStore) remove(uri string) {
 	delete(s.content, uri)
 }
 
+func (s *documentStore) overlays() map[string][]byte {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	overlays := make(map[string][]byte, len(s.content))
+	for uri, content := range s.content {
+		filename, err := filePath(uri)
+		if err != nil {
+			continue
+		}
+		overlays[filename] = append([]byte(nil), content...)
+	}
+	return overlays
+}
+
 type languageServer struct {
 	documents *documentStore
 	handler   protocol.Handler
@@ -138,18 +152,30 @@ func (s *languageServer) codeAction(
 		}
 	}
 
-	function, err := findFunction(
+	overlays := s.documents.overlays()
+	overlays[filename] = content
+	functions, err := findFunction(
 		context.Background(),
 		filename,
-		content,
+		overlays,
 		params.Range.Start.Line,
 		params.Range.Start.Character,
 	)
 	if err != nil {
 		return nil, err
 	}
-	if function == nil {
+	if len(functions) == 0 {
 		return []protocol.CodeAction{}, nil
+	}
+
+	items := make([]map[string]any, 0, len(functions))
+	for _, function := range functions {
+		items = append(items, map[string]any{
+			"name":      function.Name,
+			"uri":       pathURI(function.Filename),
+			"line":      function.Line,
+			"character": function.Character,
+		})
 	}
 
 	kind := protocol.CodeActionKindRefactor
@@ -160,10 +186,7 @@ func (s *languageServer) codeAction(
 			Title:   "Nject: Find all in the Chain",
 			Command: "njectLspDemo.showFunction",
 			Arguments: []any{map[string]any{
-				"name":      function.Name,
-				"uri":       params.TextDocument.URI,
-				"line":      function.Line,
-				"character": function.Character,
+				"functions": items,
 			}},
 		},
 	}}, nil
@@ -178,6 +201,10 @@ func filePath(uri string) (string, error) {
 		return "", fmt.Errorf("unsupported document URI scheme %q", parsed.Scheme)
 	}
 	return filepath.FromSlash(parsed.Path), nil
+}
+
+func pathURI(filename string) string {
+	return (&url.URL{Scheme: "file", Path: filepath.ToSlash(filename)}).String()
 }
 
 func main() {
