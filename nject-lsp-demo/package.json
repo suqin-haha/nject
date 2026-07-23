@@ -1,0 +1,86 @@
+{
+  "name": "nject-lsp-demo",
+  "displayName": "nject LSP Demo",
+  "version": "1.0.0",
+  "description": "A standalone LSP demo that reports Go function names in a VS Code view.",
+  "publisher": "nject-demo",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/suqin-haha/nject.git",
+    "directory": "nject-lsp-demo"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Other"
+  ],
+  "activationEvents": [
+    "onLanguage:go",
+    "onView:njectLspDemo.functions"
+  ],
+  "main": "./out/src/extension.js",
+  "scripts": {
+    "clean": "node -e \"require('node:fs').rmSync('out',{recursive:true,force:true})\"",
+    "build:client": "tsc -p .",
+    "build:server": "node scripts/build-server.mjs",
+    "compile": "npm run clean && npm run build:client && npm run build:server",
+    "watch": "tsc -w -p .",
+    "test": "npm run compile && cd server && go test ./...",
+    "package": "npm run compile && vsce package --out nject-lsp-demo.vsix"
+  },
+  "keywords": [
+    "lsp",
+    "go",
+    "demo"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "njectLspDemo.showFunction",
+        "title": "nject LSP demo"
+      },
+      {
+        "command": "njectLspDemo.findAllInChain",
+        "title": "Nject: Find all in the Chain"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "njectLspDemo.findAllInChain",
+          "when": "editorTextFocus && resourceLangId == go",
+          "group": "Nject group 1"
+        }
+      ]
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "njectLspDemo",
+          "title": "nject LSP Demo",
+          "icon": "images/nject.svg"
+        }
+      ]
+    },
+    "views": {
+      "njectLspDemo": [
+        {
+          "id": "njectLspDemo.functions",
+          "name": "Selected Functions"
+        }
+      ]
+    }
+  },
+  "dependencies": {
+    "vscode-languageclient": "^10.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.1",
+    "@types/vscode": "1.85.0",
+    "@vscode/vsce": "^3.9.2",
+    "typescript": "^7.0.2"
+  }
+}
