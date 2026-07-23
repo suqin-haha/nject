@@ -154,10 +154,10 @@ func (s *languageServer) codeAction(
 
 	kind := protocol.CodeActionKindRefactor
 	return []protocol.CodeAction{{
-		Title: "nject LSP demo",
+		Title: "Nject: Find all in the Chain",
 		Kind:  &kind,
 		Command: &protocol.Command{
-			Title:   "nject LSP demo",
+			Title:   "Nject: Find all in the Chain",
 			Command: "njectLspDemo.showFunction",
 			Arguments: []any{map[string]any{
 				"name":      function.Name,

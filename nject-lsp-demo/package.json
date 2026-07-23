@@ -41,8 +41,21 @@
       {
         "command": "njectLspDemo.showFunction",
         "title": "nject LSP demo"
+      },
+      {
+        "command": "njectLspDemo.findAllInChain",
+        "title": "Nject: Find all in the Chain"
       }
     ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "njectLspDemo.findAllInChain",
+          "when": "editorTextFocus && resourceLangId == go",
+          "group": "Nject group 1"
+        }
+      ]
+    },
     "viewsContainers": {
       "activitybar": [
         {

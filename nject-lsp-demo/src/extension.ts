@@ -13,6 +13,13 @@ interface ShowFunctionArguments {
   character: number;
 }
 
+interface CodeActionResponse {
+  command?: {
+    command: string;
+    arguments?: unknown[];
+  };
+}
+
 class FunctionItem extends vscode.TreeItem {
   constructor(args: ShowFunctionArguments) {
     super(args.name, vscode.TreeItemCollapsibleState.None);
@@ -71,6 +78,43 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         await vscode.commands.executeCommand(
           "workbench.view.extension.njectLspDemo",
         );
+      },
+    ),
+    vscode.commands.registerCommand(
+      "njectLspDemo.findAllInChain",
+      async () => {
+        const editor = vscode.window.activeTextEditor;
+        if (!editor || editor.document.languageId !== "go" || !client) {
+          return;
+        }
+
+        const position = editor.selection.active;
+        const actions = await client.sendRequest<CodeActionResponse[]>(
+          "textDocument/codeAction",
+          {
+            textDocument: { uri: editor.document.uri.toString() },
+            range: {
+              start: { line: position.line, character: position.character },
+              end: { line: position.line, character: position.character },
+            },
+            context: { diagnostics: [] },
+          },
+        );
+        const args = actions
+          .find(
+            (action) =>
+              action.command?.command === "njectLspDemo.showFunction",
+          )
+          ?.command?.arguments?.[0] as ShowFunctionArguments | undefined;
+
+        if (!args) {
+          void vscode.window.showInformationMessage(
+            "Nject: Place the cursor in a Go function or method signature.",
+          );
+          return;
+        }
+        provider.select(args);
+        await vscode.commands.executeCommand("workbench.view.extension.njectLspDemo");
       },
     ),
   );
