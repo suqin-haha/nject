@@ -21,7 +21,15 @@ func (w *analysisWorkspace) findChain(
 		return nil, err
 	}
 
-	results := make(map[string]functionInfo)
+	seenResults := make(map[string]bool)
+	var results []functionInfo
+	addResult := func(function functionNode) {
+		if seenResults[function.id] {
+			return
+		}
+		seenResults[function.id] = true
+		results = append(results, function.info)
+	}
 	for _, root := range w.njectRunCalls() {
 		var providers []functionNode
 		for index := 1; index < len(root.call.Args); index++ {
@@ -48,29 +56,16 @@ func (w *analysisWorkspace) findChain(
 			}
 			sort.Ints(ordered)
 			for _, index := range ordered {
-				results[providers[index].id] = providers[index].info
+				addResult(providers[index])
 			}
-			results[selected.function.id] = selected.function.info
+			addResult(selected.function)
 		}
 	}
 
 	if len(results) == 0 {
 		return nil, nil
 	}
-	functions := make([]functionInfo, 0, len(results))
-	for _, function := range results {
-		functions = append(functions, function)
-	}
-	sort.Slice(functions, func(left, right int) bool {
-		if functions[left].Filename != functions[right].Filename {
-			return functions[left].Filename < functions[right].Filename
-		}
-		if functions[left].Line != functions[right].Line {
-			return functions[left].Line < functions[right].Line
-		}
-		return functions[left].Character < functions[right].Character
-	})
-	return functions, nil
+	return results, nil
 }
 
 func (w *analysisWorkspace) collectProducers(
@@ -113,7 +108,13 @@ func signatureProduces(signature *types.Signature, wanted types.Type) bool {
 
 func (w *analysisWorkspace) njectRunCalls() []callSite {
 	var roots []callSite
-	for _, source := range w.files {
+	filenames := make([]string, 0, len(w.files))
+	for filename := range w.files {
+		filenames = append(filenames, filename)
+	}
+	sort.Strings(filenames)
+	for _, filename := range filenames {
+		source := w.files[filename]
 		ast.Inspect(source.syntax, func(node ast.Node) bool {
 			call, ok := node.(*ast.CallExpr)
 			if !ok {
